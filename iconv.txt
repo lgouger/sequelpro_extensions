@@ -1,0 +1,1 @@
+iconv -t US -f UTF-8 --byte-subst="&#x%x;"  --widechar-subst="&x#%x;" --unicode-subst="&#x%x;"

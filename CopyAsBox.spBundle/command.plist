@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>author</key>
+	<string>Larry Gouger</string>
+	<key>category</key>
+	<string>Copy</string>
+	<key>command</key>
+	<string>#!/usr/bin/env perl
+
+#
+#  Sample Query:
+#    select 32 as "integer", "sample string" as "string", NULL as "NULL", 3.141592 as "float", cast("2013-05-25 14:15:05" as DATETIME) as "datetime", TRUE as "boolean";
+#  
+#  Sample Output
+#
+#    +---------+---------------+------+----------+---------------------+---------+
+#    | integer | string        | NULL | float    | datetime            | boolean |
+#    +---------+---------------+------+----------+---------------------+---------+
+#    |      32 | sample string | NULL | 3.141592 | 2013-05-25 14:15:05 |       1 |
+#    +---------+---------------+------+----------+---------------------+---------+
+#
+
+$ENV{LANG}="en_US.UTF-8";
+
+binmode(STDIN, ":utf8");
+use open ':encoding(utf8)'; 
+
+# read first line to get the column names (header)
+my $firstLine = &lt;&gt;;
+
+# bail if nothing could read
+if (!defined($firstLine)) {
+  exit 0;
+}
+
+# store the column names
+chomp($firstLine);
+$firstLine =~ s/\"/\\\"/g;  # escape "
+my $num_columns = @header = split(/\t/, $firstLine);
+
+# get the column definitions
+open(META, $ENV{"SP_BUNDLE_INPUT_TABLE_METADATA"}) or die $!;
+my @meta = ();
+while (&lt;META&gt;) {
+  chomp();
+  my @arr = split(/\t/);
+  push @meta, \@arr;
+}
+close(META);
+
+my @max_width = ();
+for (my $i=0; $i &lt; $num_columns; $i++) {
+  $max_width[$i] = length($header[$i]);
+}
+
+
+# read row data of each selected row
+my @rows = ();
+while (&lt;&gt;) {
+  # remove line ending
+  chomp;
+
+  # escape "
+  $_ =~ s/\"/\\\"/g;
+
+  # split column data which are tab-delimited
+  @data = split(/\t/);
+
+  # save the row
+  push @rows, [ @data ];
+
+  for (my $i=0; $i &lt; $num_columns; $i++) {
+
+    # re-escape \t and \n
+    my $cellData = Encode::encode_utf8($data[$i]);
+
+    $cellData =~ s/\s*↵/\n/g;
+    $cellData =~ s/⇥/\t/g;
+
+    my $col_width = length($cellData);
+    if ($col_width &gt; $max_width[$i]) {
+      $max_width[$i] = $col_width;
+    }
+  }
+}
+
+
+open(PB, "|pbcopy") or die $!;
+
+# print top of box
+print PB "+";
+for (my $i=0; $i &lt; $num_columns; $i++) {
+  print PB "-" x ($max_width[$i]+2);
+  print PB "+";
+}
+print PB "\n";
+
+# print header
+print PB "|";
+for (my $i=0; $i &lt; $num_columns; $i++) {
+  printf(PB " %-$max_width[$i]s |", $header[$i]);   
+}
+print PB "\n";
+
+# print separator
+print PB "+";
+for (my $i=0; $i &lt; $num_columns; $i++) {
+  print PB "-" x ($max_width[$i]+2);
+  print PB "+";
+}
+print PB "\n";
+
+# for each row
+for my $row ( @rows ) {
+
+  # print row data
+  print PB "|";
+  for (my $i=0; $i &lt; $num_columns; $i++) {
+
+    my $cellData = Encode::encode_utf8($row-&gt;[$i]);
+
+    $cellData =~ s/⇥/\t/g;
+    $cellData =~ s/\s*↵/\n/g;
+
+    my $cellStr = "";
+
+    # check for data types
+    if ($cellData eq "NULL") {
+      $cellStr =  sprintf("%*s", -$max_width[$i], "NULL");
+    } elsif (($meta[$i]-&gt;[1] eq "integer") ||
+             ($meta[$i]-&gt;[1] eq "float"))
+    {
+      $cellStr = sprintf("%*s", $max_width[$i], $cellData);
+    } else {
+      $cellStr = sprintf("%*s", -$max_width[$i], $cellData);
+    }
+
+    print PB " $cellStr |";
+  }
+  print PB "\n";
+}
+
+# print bottom of box
+print PB "+";
+for (my $i=0; $i &lt; $num_columns; $i++) {
+  print PB "-" x ($max_width[$i]+2);
+  print PB "+";
+}
+print PB "\n";
+
+close PB;</string>
+	<key>contact</key>
+	<string>ytbhtre@tznvy.pbz</string>
+	<key>defaultBundleWasModified</key>
+	<true/>
+	<key>description</key>
+	<string>Copies the selected rows in a data table into the pasteboard in a character based table like the mysql command line tool.
+
+Version 1.0
+(excludes any BLOB data)</string>
+	<key>input</key>
+	<string>selectedtablerowsastab</string>
+	<key>isDefaultBundle</key>
+	<true/>
+	<key>keyEquivalent</key>
+	<string></string>
+	<key>name</key>
+	<string>Copy as Box</string>
+	<key>output</key>
+	<string>none</string>
+	<key>scope</key>
+	<string>datatable</string>
+	<key>tooltip</key>
+	<string>Copies the selected rows boxed like the command line tool on to the clipboard</string>
+	<key>uuid</key>
+	<string>826A2DE3-6766-474F-9ED7-18A97BAB44FA</string>
+</dict>
+</plist>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>author</key>
+	<string>Larry Gouger</string>
+	<key>category</key>
+	<string>Copy</string>
+	<key>command</key>
+	<string>#!/usr/bin/env perl
+
+#  Sample Output
+#
+#  {table-plus:columnTypes=I,S,S,F,S,I}
+#  || integer || string || NULL || float || date || boolean ||
+#  | 42 | sample | NULL | 3.141592 | 2013-05-25 14:15:05 | 1 |
+#  {table-plus}
+
+
+$ENV{LANG}="en_US.UTF-8";
+
+binmode(STDIN, ":utf8");
+use open ':encoding(utf8)'; 
+
+# read first line to get the column names (header)
+my $firstLine = &lt;&gt;;
+
+# bail if nothing could read
+if (!defined($firstLine)) {
+	exit 0;
+}
+
+# store the column names
+chomp($firstLine);
+$firstLine =~ s/\"/\\\"/g;  # escape "
+@header = split(/\t/, $firstLine);
+my $num_columns = @header = split(/\t/, $firstLine);
+
+# get the column definitions
+open(META, $ENV{"SP_BUNDLE_INPUT_TABLE_METADATA"}) or die $!;
+@meta = ();
+while(&lt;META&gt;) {
+	chomp();
+	my @arr = split(/\t/);
+	push @meta, \@arr;
+}
+close(META);
+
+open(PB, "|pbcopy") or die $!;
+
+print PB "{table-plus:columnTypes=";
+for (my $i=0; $i &lt; $num_columns; $i++) {
+	my $cellData = $header[$i];
+
+	if ($cellData eq "NULL") {
+		$align =  "S";
+	} elsif ($meta[$i]-&gt;[1] eq "integer") {
+		$align = "I";
+	} elsif ($meta[$i]-&gt;[1] eq "float") {
+		$align = "F";
+	} elsif ($meta[$i]-&gt;[1] eq "date") {
+		$align = "D";
+	} else {
+		$align = "S";
+	}
+	print PB ($i &gt; 0 ? "," : ""), $align;
+}
+print PB "}\n";
+
+print PB "||";
+for my $col ( @header ) {
+	print PB " $col ||";
+}
+print PB "\n";
+
+
+# read row data of each selected row
+while (&lt;&gt;) {
+
+	print PB "|";
+
+	# remove line ending
+	chomp();
+
+	# escape "
+	$_ =~ s/\"/\\\"/g;
+
+	# split column data which are tab-delimited
+	@row = split(/\t/);
+	for my $col ( @row ) {
+		# re-escape \t and \n
+		$col =~ s/↵/\n/g;
+		$col =~ s/⇥/\t/g;
+
+		chomp($col);
+		print PB " $col |";
+	}
+
+	print PB "\n";
+}
+print PB "{table-plus}\n";
+
+close PB;
+</string>
+	<key>contact</key>
+	<string>lgouger@gmail.com</string>
+	<key>description</key>
+	<string>Copy selected rows to the clipboard formatted for use in a Confluence wiki using the table_plus macro,
+
+Version 1.0</string>
+	<key>input</key>
+	<string>selectedtablerowsastab</string>
+	<key>keyEquivalent</key>
+	<string></string>
+	<key>name</key>
+	<string>Copy As Wiki</string>
+	<key>scope</key>
+	<string>datatable</string>
+	<key>tooltip</key>
+	<string>Copies the selected rows to clipboard using table_plus wiki markup</string>
+	<key>uuid</key>
+	<string>FA4F9D11-4B0D-49F7-811F-2F5BAEACC4A8</string>
+</dict>
+</plist>
